@@ -52,7 +52,6 @@ public class S3GroupIdentifierFactory {
         if (keyGenerator.getSourceLocation() != null) {
             int locIndex = keyGenerator.getSourceLocation().indexOf("/ext/");
             sBucketName = keyGenerator.getSourceLocation().substring(5, locIndex);
-            System.out.println("=======sBucketName===="+sBucketName);
         }
         final String fullBucketName = keyGenerator.getSourceLocation() == null ?
                 event.formatString(s3SinkConfig.getBucketName(), expressionEvaluator, BUCKET_NAME_REPLACEMENT_FOR_NON_EXISTING_KEYS):
@@ -70,6 +69,9 @@ public class S3GroupIdentifierFactory {
             groupIdentificationHash.put(expression, value);
         }
 
+        if (s3SinkConfig.getMode() != null) {
+            return new S3SecurityLakeIdentifier(groupIdentificationHash, fullObjectKey, fullBucketName);
+        }
         return new S3GroupIdentifier(groupIdentificationHash, fullObjectKey, fullBucketName);
     }
 }

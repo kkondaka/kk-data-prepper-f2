@@ -46,7 +46,6 @@ public class KeyGenerator {
             final String eventDay = String.format("%d%02d%02d", now.getYear(), now.getMonthValue(), now.getDayOfMonth());
             int locIdx = sourceLocation.indexOf("/ext/");
             pathPrefix = sourceLocation.substring(locIdx+1)+"region="+region+"/accountId="+accountId+"/eventDay="+eventDay+"/";
-            System.out.println("----Path Prefix---"+pathPrefix);
         }
         final String namePattern = ObjectKey.objectFileName(s3SinkConfig, extensionProvider.getExtension(), event, expressionEvaluator);
         return (!pathPrefix.isEmpty()) ? pathPrefix + namePattern : namePattern;

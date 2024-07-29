@@ -10,10 +10,9 @@
         queue_url: "https://sqs.us-west-2.amazonaws.com/578844260082/my-s3-queue"
       aws: "<<$.<<pipeline-name>>.source.s3.aws>>"
       sqs: "<<$.<<pipeline-name>>.source.s3.sqs>>"
-
   processor:
-   - date:                                                           
-        match:                                                        
+    - date:
+        match:
           - key: timestamp                                            
             patterns:                                                 
               - epoch_milli                                           
@@ -33,7 +32,7 @@
               - epoch_micro                                           
         destination: processed_time                                   
         output_format: epoch_second     
-- date:
+    - date:
         match:
           - key: ContextTimeStamp
             patterns:
@@ -68,7 +67,7 @@
             value:
               - datetime
               - host
-     - key: metadata/version
+          - key: metadata/version
             value: 1.1.0
           - key: severity_id
             value: 1
@@ -98,7 +97,7 @@
             value: '2'
           - key: observables_1/value
             format: '${RespondingDnsServer}'
-- add_entries:
+    - add_entries:
         entries:
           - key: observables_2/name
             value: device.uid
@@ -134,7 +133,7 @@
           - key: observables
             value_expression: /observables_2
             append_if_key_exists: true
-- rename_keys:
+    - rename_keys:
         entries:
           - from_key: id
             to_key: metadata/uid
@@ -169,7 +168,7 @@
           - from_key: IP4Records
             to_key: unmapped/IP4Records
             overwrite_if_to_key_exists: true
-         - from_key: ContextThreadId
+          - from_key: ContextThreadId
             to_key: unmapped/ContextThreadId
             overwrite_if_to_key_exists: true
           - from_key: QueryStatus

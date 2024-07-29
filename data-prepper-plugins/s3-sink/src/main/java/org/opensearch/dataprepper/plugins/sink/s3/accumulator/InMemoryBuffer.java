@@ -6,6 +6,7 @@
 package org.opensearch.dataprepper.plugins.sink.s3.accumulator;
 
 import org.apache.commons.lang3.time.StopWatch;
+import org.opensearch.dataprepper.plugins.sink.s3.grouping.S3GroupIdentifier;
 import org.opensearch.dataprepper.plugins.sink.s3.ownership.BucketOwnerProvider;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -14,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -39,6 +41,24 @@ public class InMemoryBuffer implements Buffer {
 
     private String defaultBucket;
 
+    private S3GroupIdentifier s3GroupIdentifier;
+    InMemoryBuffer(final S3AsyncClient s3Client,
+                   final S3GroupIdentifier s3GroupIdentifier,
+                   final String defaultBucket,
+                   final BucketOwnerProvider bucketOwnerProvider) {
+        this.s3Client = s3Client;
+        this.bucketSupplier = s3GroupIdentifier::getFullBucketName;
+        this.keySupplier = s3GroupIdentifier::getGroupIdentifierFullObjectKey;
+        byteArrayOutputStream.reset();
+        this.s3GroupIdentifier = s3GroupIdentifier;
+        eventCount = 0;
+        watch = new StopWatch();
+        watch.start();
+        isCodecStarted = false;
+        this.defaultBucket = defaultBucket;
+        this.bucketOwnerProvider = bucketOwnerProvider;
+    }
+
     InMemoryBuffer(final S3AsyncClient s3Client,
                    final Supplier<String> bucketSupplier,
                    final Supplier<String> keySupplier,
@@ -48,6 +68,7 @@ public class InMemoryBuffer implements Buffer {
         this.bucketSupplier = bucketSupplier;
         this.keySupplier = keySupplier;
         byteArrayOutputStream.reset();
+        this.s3GroupIdentifier = null;
         eventCount = 0;
         watch = new StopWatch();
         watch.start();
@@ -76,9 +97,10 @@ public class InMemoryBuffer implements Buffer {
     @Override
     public Optional<CompletableFuture<?>> flushToS3(final Consumer<Boolean> consumeOnCompletion, final Consumer<Throwable> consumeOnException) {
         final byte[] byteArray = byteArrayOutputStream.toByteArray();
+        Map<String, String> metadata = s3GroupIdentifier != null ? s3GroupIdentifier.getMetadata(getEventCount()) : null;
         return Optional.ofNullable(BufferUtilities.putObjectOrSendToDefaultBucket(s3Client, AsyncRequestBody.fromBytes(byteArray),
                 consumeOnCompletion, consumeOnException,
-                getKey(), getBucket(), defaultBucket, bucketOwnerProvider));
+                getKey(), getBucket(), defaultBucket, metadata, bucketOwnerProvider));
     }
 
     private String getBucket() {

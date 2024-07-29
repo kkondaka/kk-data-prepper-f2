@@ -5,6 +5,7 @@
 
 package org.opensearch.dataprepper.plugins.sink.s3.accumulator;
 
+import org.opensearch.dataprepper.plugins.sink.s3.grouping.S3GroupIdentifier;
 import org.opensearch.dataprepper.plugins.sink.s3.ownership.BucketOwnerProvider;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
@@ -13,10 +14,17 @@ import java.util.function.Supplier;
 public class InMemoryBufferFactory implements BufferFactory {
     @Override
     public Buffer getBuffer(final S3AsyncClient s3Client,
+                            final S3GroupIdentifier s3GroupIdentifier,
+                            final String defaultBucket,
+                            final BucketOwnerProvider bucketOwnerProvider) {
+        return new InMemoryBuffer(s3Client, s3GroupIdentifier, defaultBucket, bucketOwnerProvider);
+    }
+    @Override
+    public Buffer getBuffer(final S3AsyncClient s3Client,
                             final Supplier<String> bucketSupplier,
                             final Supplier<String> keySupplier,
                             final String defaultBucket,
                             final BucketOwnerProvider bucketOwnerProvider) {
-        return new InMemoryBuffer(s3Client, bucketSupplier, keySupplier, defaultBucket, bucketOwnerProvider);
+        return new InMemoryBuffer(s3Client, bucketSupplier, keySupplier, defaultBucket,  bucketOwnerProvider);
     }
 }

@@ -98,7 +98,7 @@ public class LocalFileBuffer implements Buffer {
         final CompletableFuture<PutObjectResponse> putObjectResponseCompletableFuture = BufferUtilities.putObjectOrSendToDefaultBucket(s3Client,
                 AsyncRequestBody.fromFile(localFile),
                 consumeOnCompletion, consumeOnException,
-                getKey(), getBucket(), defaultBucket, bucketOwnerProvider)
+                getKey(), getBucket(), defaultBucket, null, bucketOwnerProvider)
                 .whenComplete(((response, throwable) -> removeTemporaryFile()));
         return Optional.of(putObjectResponseCompletableFuture);
     }

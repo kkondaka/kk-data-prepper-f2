@@ -114,7 +114,7 @@ public class S3Sink extends AbstractSink<Record<Event>> {
             CreateCustomLogSourceResponse response =
                     securityLakeClient.createCustomLogSource(
                             CreateCustomLogSourceRequest.builder()
-                                    .sourceName("CS_pa_-"+ RandomStringUtils.randomAlphabetic(7))
+                                    .sourceName("CS_PA-"+ RandomStringUtils.randomAlphabetic(7))
                                     .eventClasses(List.of("NETWORK_ACTIVITY"))
                                     //.sourceVersion("1.0")
                                     .configuration(CustomLogSourceConfiguration.builder()

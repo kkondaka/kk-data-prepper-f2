@@ -52,6 +52,9 @@ public class RuleEvaluator {
 
     private RuleEvaluatorResult isSecurityLakeSink(PipelinesDataFlowModel pipelinesModel) {
         RuleEvaluatorResult rc = isDocDBSource(pipelinesModel, "slpatraffic");
+        if (!rc.isEvaluatedResult()) {
+            rc = isDocDBSource(pipelinesModel, "slcsdns");
+        }
         return rc;
     }
     /**

@@ -7,6 +7,7 @@ package org.opensearch.dataprepper.plugins.sink.s3.accumulator;
 
 import org.opensearch.dataprepper.model.codec.OutputCodec;
 import org.opensearch.dataprepper.plugins.sink.s3.compression.CompressionEngine;
+import org.opensearch.dataprepper.plugins.sink.s3.grouping.S3GroupIdentifier;
 import org.opensearch.dataprepper.plugins.sink.s3.ownership.BucketOwnerProvider;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
@@ -24,6 +25,18 @@ public class CompressionBufferFactory implements BufferFactory {
         this.innerBufferFactory = Objects.requireNonNull(innerBufferFactory);
         this.compressionEngine = Objects.requireNonNull(compressionEngine);
         compressionInternal = Objects.requireNonNull(codec).isCompressionInternal();
+    }
+
+    @Override
+    public Buffer getBuffer(final S3AsyncClient s3Client,
+                            final S3GroupIdentifier s3GroupIdentifier,
+                            final String defaultBucket,
+                            final BucketOwnerProvider bucketOwnerProvider) {
+        final Buffer internalBuffer = innerBufferFactory.getBuffer(s3Client, s3GroupIdentifier, defaultBucket, bucketOwnerProvider);
+        if(compressionInternal)
+            return internalBuffer;
+
+        return new CompressionBuffer(internalBuffer, compressionEngine);
     }
 
     @Override
