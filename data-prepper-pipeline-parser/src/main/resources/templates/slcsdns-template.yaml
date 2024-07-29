@@ -1,0 +1,341 @@
+"<<pipeline-name>>":
+  workers: "<<$.<<pipeline-name>>.workers>>"
+  delay: "<<$.<<pipeline-name>>.delay>>"
+  buffer: "<<$.<<pipeline-name>>.buffer>>"
+  source:
+    s3:
+      codec:
+        csv:
+      sqs:
+        queue_url: "https://sqs.us-west-2.amazonaws.com/578844260082/my-s3-queue"
+      aws: "<<$.<<pipeline-name>>.source.s3.aws>>"
+      sqs: "<<$.<<pipeline-name>>.source.s3.sqs>>"
+
+  processor:
+   - date:                                                           
+        match:                                                        
+          - key: timestamp                                            
+            patterns:                                                 
+              - epoch_milli                                           
+        destination: time                                             
+        output_format: epoch_second                                   
+    - date:                                                           
+        match:                                                        
+          - key: timestamp                                            
+            patterns:                                                 
+              - epoch_milli                                           
+        destination: time_dt                                          
+        output_format: 'yyyy-MM-dd''T''HH:mm:ss.SSSSSSxxx'            
+    - date:                                                           
+        match:                                                        
+          - key: ContextTimeStamp                                     
+            patterns:                                                 
+              - epoch_micro                                           
+        destination: processed_time                                   
+        output_format: epoch_second     
+- date:
+        match:
+          - key: ContextTimeStamp
+            patterns:
+              - epoch_micro
+        destination: processed_time_dt
+        output_format: 'yyyy-MM-dd''T''HH:mm:ss.SSSSSSxxx'
+    - convert_entry_type:
+        key: time
+        type: integer
+    - convert_entry_type:
+        key: processed_time
+        type: integer
+    - add_entries:
+        entries:
+          - key: category_uid
+            value: 4
+          - key: category_name
+            value: Network Activity
+          - key: class_uid
+            value: 4003
+          - key: class_name
+            value: DNS Activity
+          - key: type_uid
+            value: 400301
+          - key: type_name
+            value: 'DNS Activity: Query'
+          - key: metadata/product/name
+            value: Falcon
+          - key: metadata/product/vendor_name
+            value: CrowdStrike
+          - key: metadata/profiles
+            value:
+              - datetime
+              - host
+     - key: metadata/version
+            value: 1.1.0
+          - key: severity_id
+            value: 1
+          - key: severity
+            value: Informational
+          - key: activity_id
+            value: 1
+          - key: activity_name
+            value: Query
+    - add_entries:
+        entries:
+          - key: observables_0/name
+            value: src_endpoint.ip
+          - key: observables_0/type
+            value: IP Address
+          - key: observables_0/type_id
+            value: '2'
+          - key: observables_0/value
+            format: '${aip}'
+    - add_entries:
+        entries:
+          - key: observables_1/name
+            value: dst_endpoint.ip
+          - key: observables_1/type
+            value: IP Address
+          - key: observables_1/type_id
+            value: '2'
+          - key: observables_1/value
+            format: '${RespondingDnsServer}'
+- add_entries:
+        entries:
+          - key: observables_2/name
+            value: device.uid
+          - key: observables_2/type
+            value: Resource UID
+          - key: observables_2/type_id
+            value: '10'
+          - key: observables_2/value
+            format: '${aid}'
+    - convert_entry_type:
+        key: observables_0/type_id
+        type: integer
+    - convert_entry_type:
+        key: observables_1/type_id
+        type: integer
+    - convert_entry_type:
+        key: observables_2/type_id
+        type: integer
+    - add_entries:
+        entries:
+          - key: observables
+            value: []
+          - key: observables
+            value_expression: /observables_0
+            append_if_key_exists: true
+    - add_entries:
+        entries:
+          - key: observables
+            value_expression: /observables_1
+            append_if_key_exists: true
+    - add_entries:
+        entries:
+          - key: observables
+            value_expression: /observables_2
+            append_if_key_exists: true
+- rename_keys:
+        entries:
+          - from_key: id
+            to_key: metadata/uid
+            overwrite_if_to_key_exists: true
+          - from_key: event_simpleName
+            to_key: metadata/log_name
+            overwrite_if_to_key_exists: true
+          - from_key: ContextProcessId
+            to_key: actor/process/pid
+            overwrite_if_to_key_exists: true
+          - from_key: aip
+            to_key: src_endpoint/ip
+            overwrite_if_to_key_exists: true
+          - from_key: aid
+            to_key: device/uid
+            overwrite_if_to_key_exists: true
+          - from_key: ComputerName
+            to_key: device/name
+            overwrite_if_to_key_exists: true
+          - from_key: RespondingDnsServer
+            to_key: dst_endpoint/ip
+            overwrite_if_to_key_exists: true
+          - from_key: EventOrigin
+            to_key: query/class
+            overwrite_if_to_key_exists: true
+          - from_key: DomainName
+            to_key: query/hostname
+            overwrite_if_to_key_exists: true
+          - from_key: IP6Records
+            to_key: unmapped/IP6Records
+            overwrite_if_to_key_exists: true
+          - from_key: IP4Records
+            to_key: unmapped/IP4Records
+            overwrite_if_to_key_exists: true
+         - from_key: ContextThreadId
+            to_key: unmapped/ContextThreadId
+            overwrite_if_to_key_exists: true
+          - from_key: QueryStatus
+            to_key: unmapped/QueryStatus
+            overwrite_if_to_key_exists: true
+          - from_key: FirstIP6Record
+            to_key: unmapped/FirstIP6Record
+            overwrite_if_to_key_exists: true
+          - from_key: InterfaceIndex
+            to_key: unmapped/InterfaceIndex
+            overwrite_if_to_key_exists: true
+          - from_key: DualRequest
+            to_key: unmapped/DualRequest
+            overwrite_if_to_key_exists: true
+          - from_key: EffectiveTransmissionClass
+            to_key: unmapped/EffectiveTransmissionClass
+            overwrite_if_to_key_exists: true
+          - from_key: FirstIP4Record
+            to_key: unmapped/FirstIP4Record
+            overwrite_if_to_key_exists: true
+          - from_key: ConfigStateHash
+            to_key: unmapped/ConfigStateHash
+            overwrite_if_to_key_exists: true
+          - from_key: ConfigBuild
+            to_key: unmapped/ConfigBuild
+            overwrite_if_to_key_exists: true
+          - from_key: Entitlements
+            to_key: unmapped/Entitlements
+            overwrite_if_to_key_exists: true
+          - from_key: name
+            to_key: unmapped/name
+            overwrite_if_to_key_exists: true
+          - from_key: cid
+            to_key: unmapped/cid
+            overwrite_if_to_key_exists: true
+          - from_key: DnsRequestCount
+            to_key: unmapped/DnsRequestCount
+            overwrite_if_to_key_exists: true
+    - translate:
+        mappings:
+          - source: event_platform
+            targets:
+              - target: device/type_id
+                default: 0
+                map:
+                  Win: 2
+                  Mac: 3
+    - translate:
+        mappings:
+          - source: event_platform
+            targets:
+              - target: device/os/type_id
+                default: 0
+                map:
+                  Win: 100
+                  Mac: 300
+    - translate:
+        mappings:
+          - source: event_platform
+            targets:
+              - target: device/os/name
+                default: Unknown
+                map:
+                  Win: Windows
+                  Mac: macOS
+    - translate:
+        mappings:
+          - source: RequestType
+            targets:
+              - target: query/type
+                default: Other
+                map:
+                  '1': A
+                  '2': NS
+                  '3': MD
+                  '4': MF
+                  '5': CNAME
+                  '6': SOA
+                  '7': MB
+                  '8': MG
+                  '9': MR
+                  '10': 'NULL'
+                  '11': WKS
+                  '12': PTR
+                  '13': HINFO
+                  '14': MINFO
+                  '15': MX
+                  '16': TXT
+                  '17': RP
+                  '18': AFSDB
+                  '19': X25
+                  '20': ISDN
+                  '21': RT
+                  '22': NSAP
+                  '23': NSAP_PTR
+                  '24': SIG
+                  '25': KEY
+                  '26': PX
+                  '27': GPOS
+                  '28': AAAA
+                  '29': LOC
+                  '30': NXT
+                  '31': EID
+                  '32': NIMLOC
+                  '33': SRV
+                  '34': ATMA
+                  '35': NAPTR
+                  '36': KX
+                  '37': CERT
+                  '38': A6
+                  '39': DNAME
+                  '40': SINK
+                  '41': OPT
+                  '43': DS
+                  '46': RRSIG
+                  '47': NSEC
+                  '48': DNSKEY
+                  '49': DHCID
+                  '100': UINFO
+                  '101': UID
+                  '102': GID
+                  '103': UNSPEC
+                  '248': ADDRS
+                  '249': TKEY
+                  '250': TSIG
+                  '251': IXFR
+                  '252': AXFR
+                  '253': MAILB
+                  '254': MAILA
+                  '255': ALL
+                  '65281': WINS
+                  '65282': WINSR
+    - convert_entry_type:
+        key: device/os/type_id
+        type: integer
+    - convert_entry_type:
+        key: device/type_id
+        type: integer
+    - convert_entry_type:
+        key: actor/process/pid
+        type: long
+    - delete_entries:
+        with_keys:
+          - s3
+          - message
+          - event_platform
+          - timestamp
+          - ContextTimeStamp
+          - RequestType
+          - observables
+          - observables_0
+          - observables_1
+          - observables_2
+  sink:
+    - s3:
+        bucket: "xyz"
+        codec:
+          parquet:
+            auto_schema: true
+        object_key:
+          path_prefix: ocsf-cr-logs1
+        mode:
+          type: "security_lake"
+        threshold:
+          event_collect_timeout: 5s
+          event_count: 10
+        aws:
+          region: "us-west-2"
+          sts_role_arn: "arn:aws:iam::578844260082:role/krishkdk-osis-role"

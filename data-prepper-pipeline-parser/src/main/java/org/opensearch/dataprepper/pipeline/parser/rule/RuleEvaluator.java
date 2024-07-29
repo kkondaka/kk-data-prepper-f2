@@ -42,9 +42,18 @@ public class RuleEvaluator {
 
     public RuleEvaluatorResult isTransformationNeeded(PipelinesDataFlowModel pipelineModel) {
         //TODO - Dynamically scan the rules folder and get the corresponding template.
-        return isDocDBSource(pipelineModel);
+        //return isDocDBSource(pipelineModel);
+        RuleEvaluatorResult rc = isDocDBSource(pipelineModel, "documentdb");
+        if (!rc.isEvaluatedResult()) {
+            rc = isSecurityLakeSink(pipelineModel);
+        }
+        return rc;
     }
 
+    private RuleEvaluatorResult isSecurityLakeSink(PipelinesDataFlowModel pipelinesModel) {
+        RuleEvaluatorResult rc = isDocDBSource(pipelinesModel, "slpatraffic");
+        return rc;
+    }
     /**
      * Evaluates model based on pre defined rules and
      * result contains the name of the pipeline that will need transformation,
@@ -54,9 +63,9 @@ public class RuleEvaluator {
      * @param pipelinesModel
      * @return RuleEvaluatorResult
      */
-    private RuleEvaluatorResult isDocDBSource(PipelinesDataFlowModel pipelinesModel) {
-        PLUGIN_NAME = "documentdb";
-
+    private RuleEvaluatorResult isDocDBSource(PipelinesDataFlowModel pipelinesModel, String pluginName) {
+        //PLUGIN_NAME = "documentdb";
+        PLUGIN_NAME = pluginName;
         Map<String, PipelineModel> pipelines = pipelinesModel.getPipelines();
         for (Map.Entry<String, PipelineModel> entry : pipelines.entrySet()) {
             try {
@@ -123,7 +132,7 @@ public class RuleEvaluator {
         } catch (FileNotFoundException e){
             LOG.warn("Rule File Not Found for {}", pluginName);
             return false;
-        } catch(IOException e){
+        } catch(Exception e){
             throw new RuntimeException(e);
         }finally {
             if (ruleStream != null) {

@@ -1,0 +1,3 @@
+apply_when:
+  - "$..sink[*].security_lake"
+  - "$..processor[?(@.ocsf.type == 'PALOALTO_NETWORKS_TRAFFIC_LOGS')]"

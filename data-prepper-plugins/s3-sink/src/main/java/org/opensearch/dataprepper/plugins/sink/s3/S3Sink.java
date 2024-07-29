@@ -5,6 +5,7 @@
 
 package org.opensearch.dataprepper.plugins.sink.s3;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.opensearch.dataprepper.aws.api.AwsCredentialsSupplier;
 import org.opensearch.dataprepper.expression.ExpressionEvaluator;
 import org.opensearch.dataprepper.model.annotations.DataPrepperPlugin;
@@ -37,8 +38,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 
+import software.amazon.awssdk.services.securitylake.model.AwsIdentity;
+import software.amazon.awssdk.services.securitylake.SecurityLakeClient;
+import software.amazon.awssdk.services.securitylake.model.CreateCustomLogSourceRequest;
+import software.amazon.awssdk.services.securitylake.model.CreateCustomLogSourceResponse;
+import software.amazon.awssdk.services.securitylake.model.CustomLogSourceProvider;
+import software.amazon.awssdk.services.securitylake.model.CustomLogSourceConfiguration;
+import software.amazon.awssdk.services.securitylake.model.CustomLogSourceCrawlerConfiguration;
+import software.amazon.awssdk.services.securitylake.model.DeleteCustomLogSourceRequest;
+import software.amazon.awssdk.services.securitylake.model.ListLogSourcesRequest;
+import software.amazon.awssdk.services.securitylake.model.LogSource;
+
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Implementation class of s3-sink plugin. It is responsible for receive the collection of
@@ -94,7 +107,30 @@ public class S3Sink extends AbstractSink<Record<Event>> {
         bufferFactory = new CompressionBufferFactory(innerBufferFactory, compressionEngine, testCodec);
 
         ExtensionProvider extensionProvider = StandardExtensionProvider.create(testCodec, compressionOption);
-        KeyGenerator keyGenerator = new KeyGenerator(s3SinkConfig, extensionProvider, expressionEvaluator);
+        String sourceLocation = null;
+        if (s3SinkConfig.getMode() != null) {
+            SecurityLakeClient securityLakeClient = SecurityLakeClient.create();
+
+            CreateCustomLogSourceResponse response =
+                    securityLakeClient.createCustomLogSource(
+                            CreateCustomLogSourceRequest.builder()
+                                    .sourceName("CS_pa_-"+ RandomStringUtils.randomAlphabetic(7))
+                                    .eventClasses(List.of("NETWORK_ACTIVITY"))
+                                    //.sourceVersion("1.0")
+                                    .configuration(CustomLogSourceConfiguration.builder()
+                                            .crawlerConfiguration(CustomLogSourceCrawlerConfiguration.builder()
+                                                    .roleArn("arn:aws:iam::578844260082:role/krishkdk-osis-role")
+                                                    .build())
+                                            .providerIdentity(AwsIdentity.builder()
+                                                    .externalId("extid1")
+                                                    .principal("578844260082")
+                                                    .build())
+                                            .build())
+                                    .build());
+            CustomLogSourceProvider provider = response.source().provider();
+            sourceLocation = provider.location();
+        }
+        KeyGenerator keyGenerator = new KeyGenerator(s3SinkConfig, sourceLocation, extensionProvider, expressionEvaluator);
 
         if (s3SinkConfig.getObjectKeyOptions().getPathPrefix() != null &&
             !expressionEvaluator.isValidFormatExpression(s3SinkConfig.getObjectKeyOptions().getPathPrefix())) {

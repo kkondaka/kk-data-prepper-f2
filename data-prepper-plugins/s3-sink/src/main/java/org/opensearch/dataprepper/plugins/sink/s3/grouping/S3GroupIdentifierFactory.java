@@ -48,7 +48,15 @@ public class S3GroupIdentifierFactory {
     public S3GroupIdentifier getS3GroupIdentifierForEvent(final Event event) {
 
         final String fullObjectKey = keyGenerator.generateKeyForEvent(event);
-        final String fullBucketName = event.formatString(s3SinkConfig.getBucketName(), expressionEvaluator, BUCKET_NAME_REPLACEMENT_FOR_NON_EXISTING_KEYS);
+        String sBucketName = "";
+        if (keyGenerator.getSourceLocation() != null) {
+            int locIndex = keyGenerator.getSourceLocation().indexOf("/ext/");
+            sBucketName = keyGenerator.getSourceLocation().substring(5, locIndex);
+            System.out.println("=======sBucketName===="+sBucketName);
+        }
+        final String fullBucketName = keyGenerator.getSourceLocation() == null ?
+                event.formatString(s3SinkConfig.getBucketName(), expressionEvaluator, BUCKET_NAME_REPLACEMENT_FOR_NON_EXISTING_KEYS):
+                sBucketName;
 
         final Map<String, Object> groupIdentificationHash = new HashMap<>();
 

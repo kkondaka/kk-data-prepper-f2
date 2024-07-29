@@ -48,6 +48,8 @@ public class S3SinkConfig {
     @Size(min = 3, max = 500, message = "default_bucket length should be at least 3 characters")
     private String defaultBucket;
 
+    @JsonProperty("mode")
+    private S3SinkMode sinkMode;
 
     @JsonProperty("object_key")
     @Valid
@@ -164,6 +166,10 @@ public class S3SinkConfig {
     }
 
     public String getDefaultBucket() { return defaultBucket; }
+
+    public S3SinkMode getMode() {
+        return sinkMode;
+    }
 
     public Map<String, String> getBucketOwners() {
         return bucketOwners;
