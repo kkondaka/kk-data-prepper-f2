@@ -5,6 +5,7 @@
 
 package org.opensearch.dataprepper.plugins.source.rds.export;
 
+import io.micrometer.core.instrument.Counter;
 import org.opensearch.dataprepper.metrics.PluginMetrics;
 import org.opensearch.dataprepper.model.source.coordinator.enhanced.EnhancedSourceCoordinator;
 import org.opensearch.dataprepper.model.source.coordinator.enhanced.EnhancedSourcePartition;
@@ -20,7 +21,6 @@ import org.opensearch.dataprepper.plugins.source.rds.model.SnapshotInfo;
 import org.opensearch.dataprepper.plugins.source.rds.model.SnapshotStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.services.rds.RdsClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
@@ -43,14 +43,16 @@ public class ExportScheduler implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(ExportScheduler.class);
 
     private static final int DEFAULT_TAKE_LEASE_INTERVAL_MILLIS = 60_000;
-    private static final Duration DEFAULT_CLOSE_DURATION = Duration.ofMinutes(10);
-    private static final int DEFAULT_MAX_CLOSE_COUNT = 36;
+    static final Duration DEFAULT_CLOSE_DURATION = Duration.ofMinutes(10);
+    static final int DEFAULT_MAX_CLOSE_COUNT = 36;
     private static final int DEFAULT_CHECKPOINT_INTERVAL_MILLS = 5 * 60_000;
     private static final int DEFAULT_CHECK_STATUS_INTERVAL_MILLS = 30 * 1000;
     private static final Duration DEFAULT_SNAPSHOT_STATUS_CHECK_TIMEOUT = Duration.ofMinutes(60);
     static final String PARQUET_SUFFIX = ".parquet";
+    static final String EXPORT_JOB_SUCCESS_COUNT = "exportJobSuccess";
+    static final String EXPORT_JOB_FAILURE_COUNT = "exportJobFailure";
+    static final String EXPORT_S3_OBJECTS_TOTAL_COUNT = "exportS3ObjectsTotal";
 
-    private final RdsClient rdsClient;
     private final S3Client s3Client;
     private final PluginMetrics pluginMetrics;
     private final EnhancedSourceCoordinator sourceCoordinator;
@@ -58,19 +60,27 @@ public class ExportScheduler implements Runnable {
     private final ExportTaskManager exportTaskManager;
     private final SnapshotManager snapshotManager;
 
+    private final Counter exportJobSuccessCounter;
+    private final Counter exportJobFailureCounter;
+    private final Counter exportS3ObjectsTotalCounter;
+
     private volatile boolean shutdownRequested = false;
 
     public ExportScheduler(final EnhancedSourceCoordinator sourceCoordinator,
-                           final RdsClient rdsClient,
+                           final SnapshotManager snapshotManager,
+                           final ExportTaskManager exportTaskManager,
                            final S3Client s3Client,
                            final PluginMetrics pluginMetrics) {
         this.pluginMetrics = pluginMetrics;
         this.sourceCoordinator = sourceCoordinator;
-        this.rdsClient = rdsClient;
         this.s3Client = s3Client;
         this.executor = Executors.newCachedThreadPool();
-        this.exportTaskManager = new ExportTaskManager(rdsClient);
-        this.snapshotManager = new SnapshotManager(rdsClient);
+        this.snapshotManager = snapshotManager;
+        this.exportTaskManager = exportTaskManager;
+
+        exportJobSuccessCounter = pluginMetrics.counter(EXPORT_JOB_SUCCESS_COUNT);
+        exportJobFailureCounter = pluginMetrics.counter(EXPORT_JOB_FAILURE_COUNT);
+        exportS3ObjectsTotalCounter = pluginMetrics.counter(EXPORT_S3_OBJECTS_TOTAL_COUNT);
     }
 
     @Override
@@ -135,19 +145,18 @@ public class ExportScheduler implements Runnable {
             progressState.setSnapshotId(snapshotInfo.getSnapshotId());
             sourceCoordinator.saveProgressStateForPartition(exportPartition, null);
         } else {
-            LOG.error("The snapshot failed to create, it will be retried");
-            closeExportPartitionWithError(exportPartition);
+            LOG.error("The snapshot failed to create. The export will be retried");
             return null;
         }
 
         final String snapshotId = snapshotInfo.getSnapshotId();
         try {
-            checkSnapshotStatus(snapshotId, DEFAULT_SNAPSHOT_STATUS_CHECK_TIMEOUT);
+            snapshotInfo = checkSnapshotStatus(snapshotId, DEFAULT_SNAPSHOT_STATUS_CHECK_TIMEOUT);
         } catch (Exception e) {
-            LOG.warn("Check snapshot status for {} failed", snapshotId, e);
-            sourceCoordinator.giveUpPartition(exportPartition);
+            LOG.warn("Check snapshot status for {} failed. The export will be retried", snapshotId, e);
             return null;
         }
+        progressState.setSnapshotTime(snapshotInfo.getCreateTime().toEpochMilli());
 
         LOG.info("Creating an export task for db {} from snapshot {}", exportPartition.getDbIdentifier(), snapshotId);
         String exportTaskId = exportTaskManager.startExportTask(
@@ -160,7 +169,6 @@ public class ExportScheduler implements Runnable {
             sourceCoordinator.saveProgressStateForPartition(exportPartition, null);
         } else {
             LOG.error("The export task failed to create, it will be retried");
-            closeExportPartitionWithError(exportPartition);
             return null;
         }
 
@@ -168,13 +176,14 @@ public class ExportScheduler implements Runnable {
     }
 
     private void closeExportPartitionWithError(ExportPartition exportPartition) {
+        exportJobFailureCounter.increment();
         ExportProgressState exportProgressState = exportPartition.getProgressState().get();
         // Clear current task id, so that a new export can be submitted.
         exportProgressState.setExportTaskId(null);
         sourceCoordinator.closePartition(exportPartition, DEFAULT_CLOSE_DURATION, DEFAULT_MAX_CLOSE_COUNT);
     }
 
-    private String checkSnapshotStatus(String snapshotId, Duration timeout) {
+    private SnapshotInfo checkSnapshotStatus(String snapshotId, Duration timeout) {
         final Instant endTime = Instant.now().plus(timeout);
 
         LOG.debug("Start checking status of snapshot {}", snapshotId);
@@ -185,7 +194,7 @@ public class ExportScheduler implements Runnable {
             // The status should never be "copying" here
             if (SnapshotStatus.AVAILABLE.getStatusName().equals(status)) {
                 LOG.info("Snapshot {} is available.", snapshotId);
-                return status;
+                return snapshotInfo;
             }
 
             LOG.debug("Snapshot {} is still creating. Wait and check later", snapshotId);
@@ -256,13 +265,14 @@ public class ExportScheduler implements Runnable {
                 LOG.info("Export for {} completed successfully", exportPartition.getPartitionKey());
 
                 ExportProgressState state = exportPartition.getProgressState().get();
-                String bucket = state.getBucket();
-                String prefix = state.getPrefix();
-                String exportTaskId = state.getExportTaskId();
+                final String bucket = state.getBucket();
+                final String prefix = state.getPrefix();
+                final String exportTaskId = state.getExportTaskId();
+                final long snapshotTime = state.getSnapshotTime();
 
                 // Create data file partitions for processing S3 files
                 List<String> dataFileObjectKeys = getDataFileObjectKeys(bucket, prefix, exportTaskId);
-                createDataFilePartitions(bucket, exportTaskId, dataFileObjectKeys);
+                createDataFilePartitions(bucket, exportTaskId, dataFileObjectKeys, snapshotTime);
 
                 completeExportPartition(exportPartition);
             }
@@ -291,19 +301,25 @@ public class ExportScheduler implements Runnable {
         return objectKeys;
     }
 
-    private void createDataFilePartitions(String bucket, String exportTaskId, List<String> dataFileObjectKeys) {
+    private void createDataFilePartitions(String bucket, String exportTaskId, List<String> dataFileObjectKeys, long snapshotTime) {
         LOG.info("Total of {} data files generated for export {}", dataFileObjectKeys.size(), exportTaskId);
         AtomicInteger totalFiles = new AtomicInteger();
         for (final String objectKey : dataFileObjectKeys) {
-            DataFileProgressState progressState = new DataFileProgressState();
-            ExportObjectKey exportObjectKey = ExportObjectKey.fromString(objectKey);
-            String table = exportObjectKey.getTableName();
+            final DataFileProgressState progressState = new DataFileProgressState();
+            final ExportObjectKey exportObjectKey = ExportObjectKey.fromString(objectKey);
+            final String database = exportObjectKey.getDatabaseName();
+            final String table = exportObjectKey.getTableName();
+
+            progressState.setSourceDatabase(database);
             progressState.setSourceTable(table);
+            progressState.setSnapshotTime(snapshotTime);
 
             DataFilePartition dataFilePartition = new DataFilePartition(exportTaskId, bucket, objectKey, Optional.of(progressState));
             sourceCoordinator.createPartition(dataFilePartition);
             totalFiles.getAndIncrement();
         }
+
+        exportS3ObjectsTotalCounter.increment(totalFiles.get());
 
         // Create a global state to track overall progress for data file processing
         LoadStatus loadStatus = new LoadStatus(totalFiles.get(), 0);
@@ -311,6 +327,7 @@ public class ExportScheduler implements Runnable {
     }
 
     private void completeExportPartition(ExportPartition exportPartition) {
+        exportJobSuccessCounter.increment();
         ExportProgressState progressState = exportPartition.getProgressState().get();
         progressState.setStatus("Completed");
         sourceCoordinator.completePartition(exportPartition);
