@@ -44,6 +44,7 @@ public class RuleEvaluator {
         //TODO - Dynamically scan the rules folder and get the corresponding template.
         //return isDocDBSource(pipelineModel);
         RuleEvaluatorResult rc = isDocDBSource(pipelineModel, "documentdb");
+        LOG.info("Checking to see if it is DocDB");
         if (!rc.isEvaluatedResult()) {
             rc = isSecurityLakeSink(pipelineModel);
         }
@@ -51,8 +52,10 @@ public class RuleEvaluator {
     }
 
     private RuleEvaluatorResult isSecurityLakeSink(PipelinesDataFlowModel pipelinesModel) {
+        LOG.info("Checking to see if it is Security lake PALO ALTO logs");
         RuleEvaluatorResult rc = isDocDBSource(pipelinesModel, "slpatraffic");
         if (!rc.isEvaluatedResult()) {
+            LOG.info("Checking to see if it is Security lake CROWDSTRIKE logs");
             rc = isDocDBSource(pipelinesModel, "slcsdns");
         }
         return rc;

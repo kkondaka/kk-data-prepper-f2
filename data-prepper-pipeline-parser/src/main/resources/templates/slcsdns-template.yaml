@@ -6,8 +6,6 @@
     s3:
       codec:
         csv:
-      sqs:
-        queue_url: "https://sqs.us-east-1.amazonaws.com/767398004756/my-osis-s3-q1"
       aws: "<<$.<<pipeline-name>>.source.s3.aws>>"
       sqs: "<<$.<<pipeline-name>>.source.s3.sqs>>"
   processor:
@@ -329,12 +327,12 @@
           parquet:
             auto_schema: true
         object_key:
-          path_prefix: ocsf-cr-logs1
+          path_prefix: ocsf-sl
         mode:
           type: "security_lake"
         threshold:
           event_collect_timeout: 5s
           event_count: 10
         aws:
-          region: "us-west-2"
-          sts_role_arn: "arn:aws:iam::767398004756:role/OSI-PipelineRole"
+          region: "<<$.<<pipeline-name>>.sink[0].security_lake.region>>"
+          sts_role_arn: "<<$.<<pipeline-name>>.sink[0].security_lake.sts_role_arn>>"
