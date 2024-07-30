@@ -7,7 +7,7 @@
       codec:
         csv:
       sqs:
-        queue_url: "https://sqs.us-west-2.amazonaws.com/578844260082/my-s3-queue"
+        queue_url: "https://sqs.us-east-1.amazonaws.com/767398004756/my-osis-s3-q1"
       aws: "<<$.<<pipeline-name>>.source.s3.aws>>"
       sqs: "<<$.<<pipeline-name>>.source.s3.sqs>>"
   processor:
@@ -692,4 +692,4 @@
           event_count: 10
         aws:
           region: "us-west-2"
-          sts_role_arn: "arn:aws:iam::578844260082:role/krishkdk-osis-role"
+          sts_role_arn: "arn:aws:iam::767398004756:role/OSI-PipelineRole"

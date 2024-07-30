@@ -119,11 +119,11 @@ public class S3Sink extends AbstractSink<Record<Event>> {
                                     //.sourceVersion("1.0")
                                     .configuration(CustomLogSourceConfiguration.builder()
                                             .crawlerConfiguration(CustomLogSourceCrawlerConfiguration.builder()
-                                                    .roleArn("arn:aws:iam::578844260082:role/krishkdk-osis-role")
+                                                    .roleArn("arn:aws:iam::767398004756:role/OSI-PipelineRole")
                                                     .build())
                                             .providerIdentity(AwsIdentity.builder()
                                                     .externalId("extid1")
-                                                    .principal("578844260082")
+                                                    .principal("767398004756")
                                                     .build())
                                             .build())
                                     .build());
