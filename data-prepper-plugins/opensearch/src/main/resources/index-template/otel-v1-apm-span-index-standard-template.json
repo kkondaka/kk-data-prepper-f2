@@ -3,39 +3,136 @@
   "template": {
     "mappings": {
       "date_detection": false,
+      "_source": {
+        "enabled": true
+      },
       "dynamic_templates": [
         {
-          "resource_attributes_map": {
+          "integer_resource_attributes": {
             "mapping": {
-              "type": "keyword"
+              "type": "long"
+            },
+            "path_match": "resource.attributes.*",
+            "match_mapping_type": "long"
+          }
+        },
+        {
+          "double_resource_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "resource.attributes.*",
+            "match_mapping_type": "double"
+          }
+        },
+        {
+          "default_resource_attributes": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
             },
             "path_match": "resource.attributes.*"
           }
         },
         {
-          "span_attributes_map": {
+          "integer_scope_attributes": {
             "mapping": {
-              "type": "keyword"
+              "type": "long"
             },
-            "path_match": "span.attributes.*"
+            "path_match": "instrumentationScope.attributes.*",
+            "match_mapping_type": "long"
+          }
+        },
+        {
+          "double_scope_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "instrumentationScope.attributes.*",
+            "match_mapping_type": "double"
+          }
+        },
+        {
+          "default_scope_attributes_map": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "path_match": "instrumentationScope.attributes.*"
+          }
+        },
+        {
+          "long_attributes": {
+            "mapping": {
+              "type": "long"
+            },
+            "path_match": "attributes.*"
+          }
+        },
+        {
+          "double_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "attributes.*"
+          }
+        },
+        {
+          "default_attributes": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "path_match": "attributes.*"
           }
         }
       ],
-      "_source": {
-        "enabled": true
-      },
       "properties": {
+        "droppedEventsCount": {
+          "type": "integer"
+        },
+        "instrumentationScope": {
+          "properties": {
+            "droppedEventsCount": {
+              "type": "integer"
+            },
+            "schemaUrl": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "name": {
+              "type": "keyword",
+              "ignore_above": 128
+            },
+            "version": {
+              "type": "keyword",
+              "ignore_above": 64
+            }
+          }
+        },
+        "resource": {
+          "properties": {
+            "droppedEventsCount": {
+              "type": "integer"
+            },
+            "schemaUrl": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+
         "traceId": {
-          "ignore_above": 256,
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 32
         },
         "spanId": {
-          "ignore_above": 256,
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 16
         },
         "parentSpanId": {
-          "ignore_above": 256,
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 16
         },
         "name": {
           "ignore_above": 1024,
@@ -63,11 +160,8 @@
           }
         },
         "kind": {
-          "ignore_above": 128,
-          "type": "keyword"
-        },
-        "droppedEventsCount": {
-          "type": "integer"
+          "type": "keyword",
+          "ignore_above": 32
         },
         "startTime": {
           "type": "date_nanos"
@@ -75,46 +169,8 @@
         "endTime": {
           "type": "date_nanos"
         },
-        "attributes": {
-          "type": "object"
-        },
-        "instrumentationScope": {
-          "properties": {
-            "name": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 128
-                }
-              }
-            },
-            "version": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 256
-                }
-              }
-            },
-             "attributes": {
-               "type": "object"
-             },
-             "droppedEventsCount": {
-               "type": "integer"
-             }
-          }
-        },
-        "resource": {
-          "properties": {
-             "attributes": {
-               "type": "object"
-             },
-             "droppedEventsCount": {
-               "type": "integer"
-             }
-          }
+        "@timestamp": {
+          "type": "date_nanos"
         },
         "status": {
           "properties": {
@@ -127,7 +183,8 @@
           }
         },
         "serviceName": {
-          "type": "keyword"
+          "type": "alias",
+          "path": "resource.attributes.service.name"
         },
         "durationInNanos": {
           "type": "long"
