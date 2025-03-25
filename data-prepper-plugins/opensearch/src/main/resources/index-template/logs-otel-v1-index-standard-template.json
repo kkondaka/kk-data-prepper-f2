@@ -6,58 +6,129 @@
       "_source": {
         "enabled": true
       },
+      "dynamic_templates": [
+        {
+          "integer_resource_attributes": {
+            "mapping": {
+              "type": "long"
+            },
+            "path_match": "resource.attributes.*",
+            "match_mapping_type": "long"
+          }
+        },
+        {
+          "double_resource_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "resource.attributes.*",
+            "match_mapping_type": "double"
+          }
+        },
+        {
+          "default_resource_attributes": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "path_match": "resource.attributes.*"
+          }
+        },
+        {
+          "integer_scope_attributes": {
+            "mapping": {
+              "type": "long"
+            },
+            "path_match": "instrumentationScope.attributes.*",
+            "match_mapping_type": "long"
+          }
+        },
+        {
+          "double_scope_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "instrumentationScope.attributes.*",
+            "match_mapping_type": "double"
+          }
+        },
+        {
+          "default_scope_attributes_map": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "path_match": "instrumentationScope.attributes.*"
+          }
+        },
+        {
+          "long_attributes": {
+            "mapping": {
+              "type": "long"
+            },
+            "path_match": "attributes.*"
+          }
+        },
+        {
+          "double_attributes": {
+            "mapping": {
+              "type": "double"
+            },
+            "path_match": "attributes.*"
+          }
+        },
+        {
+          "default_attributes": {
+            "mapping": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "path_match": "attributes.*"
+          }
+        }
+      ],
       "properties": {
         "droppedEventsCount": {
           "type": "integer"
         },
-        "attributes": {
-          "type": "object"
-        },
         "instrumentationScope": {
           "properties": {
+            "droppedEventsCount": {
+              "type": "integer"
+            },
+            "schemaUrl": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
             "name": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 128
-                }
-              }
+              "type": "keyword",
+              "ignore_above": 128
             },
             "version": {
-              "type": "text",
-              "fields": {
-                "keyword": {
-                  "type": "keyword",
-                  "ignore_above": 256
-                }
-              }
-            },
-             "attributes": {
-               "type": "object"
-             },
-             "droppedEventsCount": {
-               "type": "integer"
-             }
+              "type": "keyword",
+              "ignore_above": 64
+            }
           }
         },
         "resource": {
           "properties": {
-             "attributes": {
-               "type": "object"
-             },
-             "droppedEventsCount": {
-               "type": "integer"
-             }
+            "droppedEventsCount": {
+              "type": "integer"
+            },
+            "schemaUrl": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
           }
         },
         "severity": {
           "properties": {
             "number": {
-              "type": "long"
+              "type": "integer"
             },
             "text": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": "32"
             }
           }
         },
@@ -78,50 +149,56 @@
           "path": "observedTimestamp"
         },
         "traceId": {
-          "ignore_above": 256,
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 32
         },
         "spanId": {
-          "ignore_above": 256,
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 16
         },
         "flags": {
-          "type": "integer"
+          "type": "long"
         },
         "schemaUrl": {
-          "type": "keyword"
+          "type": "keyword",
+          "ignore_above": 256
         },
-        "instrumentationScope": {
-          "properties": {
-            "name": {
-              "type": "keyword"
-            },
-            "version": {
-              "type": "keyword"
-            }
-          }
+        "serviceName": {
+          "type": "alias",
+          "path": "resource.attributes.service.name"
         },
         "event": {
           "properties": {
             "kind": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 256
             },
             "domain": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 256
             },
             "category": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 256
             },
             "type": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 256
             },
             "result": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 256
             },
-           "exception": {
+            "exception": {
               "properties": {
                 "message": {
-                  "type": "text"
+                  "type": "text",
+                  "fields": {
+                    "keyword": {
+                      "type": "keyword",
+                      "ignore_above": 2048
+                    }
+                  }
                 },
                 "stacktrace": {
                   "type": "text"
@@ -137,4 +214,3 @@
     }
   }
 }
-
