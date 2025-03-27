@@ -8,7 +8,7 @@
       },
       "dynamic_templates": [
         {
-          "integer_resource_attributes": {
+          "long_resource_attributes": {
             "mapping": {
               "type": "long"
             },
@@ -35,7 +35,7 @@
           }
         },
         {
-          "integer_scope_attributes": {
+          "long_scope_attributes": {
             "mapping": {
               "type": "long"
             },
@@ -88,12 +88,12 @@
         }
       ],
       "properties": {
-        "droppedEventsCount": {
+        "droppedAttributesCount": {
           "type": "integer"
         },
         "instrumentationScope": {
           "properties": {
-            "droppedEventsCount": {
+            "droppedAttributesCount": {
               "type": "integer"
             },
             "schemaUrl": {
@@ -112,33 +112,12 @@
         },
         "resource": {
           "properties": {
-            "droppedEventsCount": {
+            "droppedAttributesCount": {
               "type": "integer"
             },
             "schemaUrl": {
               "type": "keyword",
               "ignore_above": 256
-            }
-          }
-        },
-        "attributes": {
-          "type": "object",
-          "properties": {
-            "data_stream": {
-              "properties": {
-                "dataset": {
-                  "ignore_above": 128,
-                  "type": "keyword"
-                },
-                "namespace": {
-                  "ignore_above": 128,
-                  "type": "keyword"
-                },
-                "type": {
-                  "ignore_above": 56,
-                  "type": "keyword"
-                }
-              }
             }
           }
         },
@@ -180,9 +159,6 @@
           "type": "date_nanos"
         },
         "time": {
-          "type": "date_nanos"
-        },
-        "observedTimestamp": {
           "type": "date_nanos"
         },
         "value@int": {
@@ -300,6 +276,15 @@
             "spanId": {
               "ignore_above": 256,
               "type": "keyword"
+            },
+            "value@int": {
+              "type": "long"
+            },
+            "value@double": {
+              "type": "double"
+            },
+            "value": {
+              "type": "double"
             }
           }
         },

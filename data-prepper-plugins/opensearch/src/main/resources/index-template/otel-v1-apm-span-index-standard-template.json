@@ -8,7 +8,7 @@
       },
       "dynamic_templates": [
         {
-          "integer_resource_attributes": {
+          "long_resource_attributes": {
             "mapping": {
               "type": "long"
             },
@@ -35,7 +35,7 @@
           }
         },
         {
-          "integer_scope_attributes": {
+          "long_scope_attributes": {
             "mapping": {
               "type": "long"
             },
@@ -88,12 +88,12 @@
         }
       ],
       "properties": {
-        "droppedEventsCount": {
+        "droppedAttributesCount": {
           "type": "integer"
         },
         "instrumentationScope": {
           "properties": {
-            "droppedEventsCount": {
+            "droppedAttributesCount": {
               "type": "integer"
             },
             "schemaUrl": {
@@ -112,7 +112,7 @@
         },
         "resource": {
           "properties": {
-            "droppedEventsCount": {
+            "droppedAttributesCount": {
               "type": "integer"
             },
             "schemaUrl": {
@@ -121,7 +121,6 @@
             }
           }
         },
-
         "traceId": {
           "type": "keyword",
           "ignore_above": 32
@@ -178,7 +177,8 @@
               "type": "integer"
             },
             "message": {
-              "type": "keyword"
+              "type": "keyword",
+              "ignore_above": 2048
             }
           }
         },
@@ -192,13 +192,49 @@
         "events": {
           "type": "nested",
           "properties": {
+            "name": {
+              "type": "keyword",
+              "ignore_above": 256
+            },
+            "attributes": {
+              "type": "object"
+            },
+            "droppedAttributesCount": {
+              "type": "integer"
+            },
             "time": {
               "type": "date_nanos"
             }
           }
         },
+        "droppedEventsCount": {
+          "type": "integer"
+        },
         "links": {
-          "type": "nested"
+          "type": "nested",
+          "properties": {
+            "traceId": {
+              "type": "keyword",
+              "ignore_above": 32
+            },
+            "spanId": {
+              "type": "keyword",
+              "ignore_above": 16
+            },
+            "traceState": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "attributes": {
+              "type": "object"
+            },
+            "droppedAttributesCount": {
+              "type": "integer"
+            }
+          }
+        },
+        "droppedLinksCount": {
+          "type": "integer"
         }
       }
     }
