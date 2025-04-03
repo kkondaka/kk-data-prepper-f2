@@ -160,49 +160,6 @@
         "serviceName": {
           "type": "alias",
           "path": "resource.attributes.service.name"
-        },
-        "event": {
-          "properties": {
-            "kind": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "domain": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "category": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "type": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "result": {
-              "type": "keyword",
-              "ignore_above": 256
-            },
-            "exception": {
-              "properties": {
-                "message": {
-                  "type": "text",
-                  "fields": {
-                    "keyword": {
-                      "type": "keyword",
-                      "ignore_above": 2048
-                    }
-                  }
-                },
-                "stacktrace": {
-                  "type": "text"
-                },
-                "type": {
-                  "type": "keyword"
-                }
-              }
-            }
-          }
         }
       }
     }
